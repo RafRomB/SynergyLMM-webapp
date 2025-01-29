@@ -1,0 +1,12 @@
+name: SynerLMM
+title: SynerLMM
+username: rafrombec
+account: rafrombec
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 12884540
+bundleId: 9350038
+url: https://rafrombec.shinyapps.io/SynerLMM/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
