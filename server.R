@@ -334,7 +334,7 @@ server <- function(input, output, session) {
           model = model_results(),
           method = input$synergy_method,
           min_time = input$min_time,
-          robustSE = input$robustSE,
+          robust = input$robustSE,
           type = input$se_type,
           ra_nsim = input$ra_nsim,
           show_plot = FALSE
