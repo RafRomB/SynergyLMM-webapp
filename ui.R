@@ -5,58 +5,116 @@ ui <- fluidPage(
                           primary = "#29454d", secondary = "#2c778a"),
   
   tags$style(HTML("
-  
-     /* Style for the title panel */
+    /* General styles */
+    body {
+      font-family: 'Ubuntu', sans-serif;
+    }
+
+    /* Style for the title panel */
     .title-panel {
-      background-color: #a7c9c7;   /* Background color */
-      color: #171d1f;                /* Text color */
-      padding: 10px;               /* Add some padding */
-      border-radius: 10px;         /* Optional: Rounded corners */
+      background-color: #a7c9c7; /* Background color */
+      color: #171d1f; /* Text color */
+      padding: 10px; /* Add some padding */
+      border-radius: 10px; /* Optional: Rounded corners */
+      font-size: 50px;
+      text-align: left;
     }
-    
-    /* Style the top tab bar (background color for all tabs) */
+
+    /* Style for the top tab bar */
     .nav-tabs {
-      background-color: #a7c9c7; /* Change this to your desired background color */
-      border-radius: 10px;         /* Optional: Rounded corners */
+      background-color: #a7c9c7; /* Background color */
+      border-radius: 10px; /* Optional: Rounded corners */
     }
-    
+
     /* Style for the active tab */
     .nav-tabs .nav-item .nav-link.active {
       background-color: #2c778a; /* Active tab background */
-      color: white;              /* Active tab text color */
-      font-weight: bold;          /* Make the font bold for the active tab */
+      color: white; /* Active tab text color */
+      font-weight: bold; /* Bold font for active tab */
     }
-    
+
     /* Style for non-active tabs */
     .nav-tabs .nav-item .nav-link {
-      color: #f5f5f5;            /* Non-active tab text color */
-      background-color: #3b6475;  /* Non-active tab background color */
-      font-weight: bold;          /* Make the font bold for the active tab */
+      color: #f5f5f5; /* Non-active tab text color */
+      background-color: #3b6475; /* Non-active tab background color */
+      font-weight: bold;
     }
-    
+
     /* Hover effect for non-active tabs */
     .nav-tabs .nav-item .nav-link:hover {
-      background-color: #1f2a30;  /* Background color on hover */
-      color: #ffffff;             /* Text color on hover */
-      font-weight: bold;          /* Make the font bold for the active tab */
+      background-color: #1f2a30; /* Hover background color */
+      color: #ffffff; /* Hover text color */
     }
-    
-    .floating-sidebar {
-      position: fixed;
-      top: 128px; /* Distance from the top of the viewport */
-      left: 20px; /* Distance from the left of the viewport */
-      
+
+    /* Floating sidebar styles for larger screens */
+    .sidebar-column {
+      background-color: #e8f4f3;
+      padding: 15px;
+      border-radius: 8px;
     }
-    
-    /* Adjust the main panel to avoid overlap */
+
     .main-panel-adjust {
-      margin-left: 75px; /* Space to the right of the floating sidebar */
       margin-top: 20px;
     }
-    
-    
-   
-  ")),
+
+    /* Responsive layout adjustments */
+    @media (max-width: 1200px) {
+      .floating-sidebar {
+        position: static;
+        width: 100%;
+        margin-bottom: 20px;
+      }
+
+      .main-panel-adjust {
+        margin-left: 0;
+      }
+
+      .nav-tabs {
+        font-size: 14px;
+      }
+
+      .title-panel {
+        font-size: 22px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .floating-sidebar {
+        position: static;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .main-panel-adjust {
+        margin-left: 0;
+      }
+
+      .title-panel {
+        font-size: 20px;
+        text-align: left;
+      }
+
+      .nav-tabs .nav-item .nav-link {
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .sidebar-column {
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      .title-panel {
+        font-size: 18px;
+        padding: 8px;
+      }
+
+      .main-panel-adjust {
+        margin-top: 10px;
+      }
+    }
+")),
   
   tags$div(class = "title-panel", titlePanel("SynergyLMM (v1)")),
   
@@ -70,7 +128,7 @@ ui <- fluidPage(
                  tags$h4("Tutorial Sections"),
                  tags$ol(
                    tags$li(tags$a(href = "#overview", "SynergyLMM Overview")),
-                   tags$li(tags$a(href = "#upload", "Data Upload and Model Fit")),
+                   tags$li(tags$a(href = "#upload", "Data Upload and Model Estimation")),
                    tags$li(tags$a(href = "#synergy", "Synergy Analysis")),
                    tags$li(tags$a(href = "#diagnostics", "Model Diagnostics")),
                    tags$ul(
@@ -82,9 +140,9 @@ ui <- fluidPage(
                      tags$li(tags$a(href = "#posthoc", "Post Hoc Power Analysis")),
                      tags$li(tags$a(href = "#apriori", "A Priori Power Analysis")),
                      tags$ul(
-                       tags$li(tags$a(href = "#samplesize", "Sample Size Power Analysis")),
-                       tags$li(tags$a(href = "#timepwr", "Time Power Analysis")),
-                       tags$li(tags$a(href = "#variability", "Variability Power Analysis"))
+                       tags$li(tags$a(href = "#samplesize", "Sample Size")),
+                       tags$li(tags$a(href = "#timepwr", "Time and Frequency")),
+                       tags$li(tags$a(href = "#variability", "Data Variability"))
                        )
                      )
                    ), 
@@ -97,7 +155,7 @@ ui <- fluidPage(
                       card_header(h2("SynergyLMM Workflow Overview")),
                  tags$figure(
                    tags$img(
-                     width = 1000,
+                     width = "100%",
                      src = "LMM_Graphical_Abstract.png",
                      alt = "SynergyLMM workflow overview."
                  ),
@@ -123,37 +181,37 @@ ui <- fluidPage(
                card(id = "example_data",
                  card_header(h2("How to Use SynergyLMM")),
                  tags$p(tags$b("Welcome to the SynergyLMM tutorial!"), tags$br(),
-                        "In this first tab, we will follow a quick-start tutorial about how to use the app.", "We will use an example",
-                        "dataset, which can be downloaded by clicking in the link below:"),
+                        "This quick-start tutorial shows how to use the web-app.", "An example dataset will be used,",
+                        "which can be downloaded by clicking in the link below:"),
                  tags$a(href = "eg_grwth_data.xlsx", download = NA, "Download Example Dataset")
                  
                ),
                card(id = "upload",
                     card_header(h3("Data Upload and Model Fit")),
-                    tags$p("We will start uploading the data in the", tags$b("'Fit Model for Tumor Growth Data'"), "tab.",
+                    tags$p("The user can upload the data in the", tags$b("'Model Estimation'"), "tab.",
                            "The input data should be a data table in long format with at least four columns: one for sample IDs,",
                            "one for time points, one for treatment groups, and one for tumor volume measurements.",
                            "(See the example dataset for reference)."), 
                     tags$p("This is how the data should look like:"),
                     card(h3("Input Table"), DTOutput("ex_dt")),
-                    tags$p("Once the data is uploaded, we need to",
-                           "specify which columns contain each information. For our example, columns", tags$i("Mouse, Day, Group,"),
+                    tags$p("Once the data is uploaded, the user will need to",
+                           "specify which columns contain each information. For this example, columns", tags$i("Mouse, Day, Group,"),
                            "and", tags$i("TumVol"), "contain the information about the sample IDs, time points, treatments, and tumor measurements,",
                            "respectively (Fig. 1a)."),
                     tags$p("The next step is to define the time points for the experiment. By default, the minimum and maximum values",
                            "in the 'Time' column will be used as the start and end time points, but these can be modified.",
-                           "We also need to specify the name of the different treatments in the experiment. In this example,",
+                           "The name of the different treatments in the experiment also need to be specified. In this example,",
                            "'Control', 'DrugA', 'DrugB', and 'Combination' correspond to the control, single drugs, and the drug",
                            "combination groups (Fig. 1b)."),
-                    tags$p("Next, we can click on 'Run Analysis'. This action will fit the model and produce a table with the model estimates,",
+                    tags$p("Next, clicking on 'Run Analysis' will fit the model and produce a table with the model estimates,",
                            "(Fig. 1c), including the", tags$i("tumor growth rates"), " of the different groups, and the standard deviations",
                            "for the random effects and for the residuals.", "If 'Show Plot' is selected, the plots with the tumor growth curves",
                            "are displayed along with the regression line for the fixed effect coefficients (i.e., the tumor growth rates for the control and treatment groups, Fig. 1d)."),
                     tags$p("The orange-shaded lines in Fig. 1d indicate two individuals, mouse 2 and mouse 10, whose measurements are (intentionally) notably different from the others,",
-                           "and which will greatly affect the model and the results. We will discuss about the impact of these individuals and how to deal with them later."),
+                           "and which will greatly affect the model and the results. The impact of these individuals and how to deal with them will be discussed later."),
                     tags$figure(
                       tags$img(
-                        width = 1000,
+                        width = "100%",
                         src = "Fig1.png"
                       ),
                       tags$figcaption(tags$b("Figure 1. a,"), 
@@ -168,11 +226,11 @@ ui <- fluidPage(
                     tags$p(tags$b("Minimum Observations per Subject"), tags$br(),
                            "In Fig. 1b, there is an option called 'Minimum Observations per Subject', which allows for excluding",
                            "samples with fewer than the specified number of observations. For example, in Figure 1d, the arrow heads indicate",
-                           "subjects for which only four observations were made. If we set the minimum observations per subject to five,",
+                           "subjects for which only four observations were made. If the the minimum observations per subject is set to five,",
                            "these samples will be omitted from the analysis (Fig 2)."),
                     tags$figure(
                       tags$img(
-                        width = 1000,
+                        width = "75%",
                         src = "Fig2.png"
                       ),
                       tags$figcaption(tags$b("Figure 2. a, "), 
@@ -184,17 +242,18 @@ ui <- fluidPage(
                
                card(id = "synergy",
                     card_header(h3("Synergy Analysis")),
-                    tags$p("Once we have checked and evaluated the quality of our model, we are ready for the",
-                           tags$b("Synergy Analysis"), 
-                           ". Fig. 3a shows the different options for synergy analysis.",
-                           "We can choose between Bliss, highest single agent (HSA), or response additivity (RA)",
-                           "reference models. In the advance options, we can check 'Use Robust Estimators' to apply",
+                    tags$p("Once the model is fitted, the",
+                           tags$b("Synergy Analysis"), "can be performed.",
+                           "Fig. 3a shows the different options for synergy analysis.",
+                           "The user can choose between Bliss, highest single agent (HSA), or response additivity (RA)",
+                           "reference models. In the advance options, selecting 'Use Robust Estimators' will apply",
                            "sandwich-based cluster-robust variance estimators. This is recommended and can help to deal with",
                            "possible model misspecifications."),
                     tags$p("The analysis for the response additivity reference model is based on simulations, and the number of",
                            "simulations to run can also be specified by the user."),
                     tags$p("The output of the analysis includes a plot with the combination index (CI) and synergy score (SS) for each",
-                           "time point (Fig. 3b), as well as a table with all the results."),
+                           "time point (Fig. 3b), as well as a table with all the results. The plot in Fig. 3b shows the estimated synergy metric (CI or SS) value,
+                           together with the confidence interval (vertical lines), and the color of the dots indicates the statistical significance."),
                     tags$p("The interpretation of the CI and SS values follows the typical definition of CI and SS:"),
                     tags$ul(
                       tags$li(tags$b("CI:"),"Provides information about the observed drug combination effect versus the expected", 
@@ -210,7 +269,7 @@ ui <- fluidPage(
                     ),
                     tags$figure(
                       tags$img(
-                        width = 1000,
+                        width = "100%",
                         src = "Fig3.png"
                       ),
                       tags$figcaption(tags$b("Figure 3. a, "),
@@ -233,7 +292,7 @@ ui <- fluidPage(
                card(id = "diagnostics",
                     card_header(h3("Model Diagnostics")),
                     tags$p("An important step in the analysis is to verify that the model is appropriate for",
-                           "our data. In the", tags$b("Model Diagnostics"), " tab, we can check the main",
+                           "the input data. In the", tags$b("Model Diagnostics"), " tab, the user can check the main",
                            "assumptions: the normality of the random effects and the residuals."), 
                     tags$p("The model diagnostics output includes four plots to help",
                            "evaluate the adequacy of the model. The two plots at the top of Fig. 4a show the Q-Q plot of the random effects and normalized residuals.",
@@ -245,7 +304,7 @@ ui <- fluidPage(
                            A non-significant p-value obtained by the Shapiro-Wilk normality indicates that there is no evidence to reject normalilty."), 
                     tags$figure(
                       tags$img(
-                        width = 1000,
+                        width = "100%",
                         src = "Fig4.png"
                       ),
                       tags$figcaption(tags$b("Figure 4. a, "), 
@@ -261,26 +320,26 @@ ui <- fluidPage(
                            "with these observations is also provided by SynergyLMM. It can be observed that many observations",
                            "from mouse 2 and mouse 10 have large residual values."),
                     card(h4("Potential Outlier Observations"), DTOutput("ex_outlier")),
-                    tags$p("As mentioned before, mouse 2 and mouse 10 are intentionally introduced outliers in the model, and they many observations from these subjectes are
+                    tags$p("As mentioned before, mouse 2 and mouse 10 are intentionally introduced outliers in the model, and there are many observations from these subjectes that are
                            indeed identified as potential outliers.",
-                           "We will discuss more about outlier identification in the",
-                           tags$b("Influential Diagnostics"), "section. But first, let us try to improve the model diagnostics."),
+                           "More details about outlier identification are provided in the",
+                           tags$b("Influential Diagnostics"), "section. But first, there are several approaches that the user can follow to try to improve the model diagnostics."),
                     tags$p("If the diagnostic plots and tests show evident violations of the model assumptions, there are several solutions that may help improving the model:",
                            tags$ul("- Define the model using unequal variances for the errors. This can be done in the",
                            tags$i("Advanced Options"), "of the",
-                           tags$b("Fit Model for Tumor Growth Data"), "tab."),
+                           tags$b("Model Estimation"), "tab."),
                            tags$ul("- Transform the time units to improve the model fit and ensure that its assumptions are satisfied.
                                    For example, a square root or logarithmic transformation of the time units could help improving the model."),
                            tags$ul("- Carefully address potential outliers. Individuals or measurements highlited as potential outliers may warrant 
                                    further investigation to reveal the reasons behind unusual growth behaviours, and potentially exclude these before re-analysis, 
                                    after careful reporting and justification.")
                            ),
-                    tags$p("In our case, we will fit the model especifying a unequal variance for the errors. Concretely, we will define a different variance for each treatment (Fig. 5a).",
+                    tags$p("In this case, the model will be fitted especifying a unequal variance for the errors. Concretely, a different variance for each treatment is defined (Fig. 5a).",
                            "It can be seen that this has improved the model diagnostics, and now both the random effects and normalized residuals are approximately normally distributed.",
-                           "There are still some potential outlier observations, which is normal, since we now there are two outlier subjects."),
+                           "There are still some potential outlier observations, which is normal, since there are two intentional outlier subjects."),
                     tags$figure(
                       tags$img(
-                        width = 1000,
+                        width = "100%",
                         src = "Fig5.png"
                       ),
                       tags$figcaption(tags$b("Figure 5. a, "), 
@@ -293,7 +352,7 @@ ui <- fluidPage(
                          card_header(h3("Influential Diagnostics")),
                          tags$p("The", tags$b("Influential Diagnostics"), "tab is useful to identify",
                                 "subjects that have a great impact in the model and that may warrant more careful analysis.",
-                                "To this end, we will use Cook's distances and subject-specific log-likelihood displacements."),
+                                "To this end, SynergyLMM uses Cook's distances and subject-specific log-likelihood displacements."),
                          tags$p("Cook's distances indicate the influence of each subject to the beta coefficient estimates",
                                 "of the model (i.e., tumor growth rate for the control and treatment groups). The greater the value, the higher the",
                                 "influence of the subject on the coefficient for its treatment group."),
@@ -305,7 +364,7 @@ ui <- fluidPage(
                                 as having an important influence in the overall fit of the model."),
                          tags$figure(
                            tags$img(
-                             width = 1000,
+                             width = "100%",
                              src = "Fig6.png"
                            ),
                            tags$figcaption(tags$b("Figure 6. a, "),
@@ -325,12 +384,12 @@ ui <- fluidPage(
                     tags$p("Each plot in Fig. 7b corresponds to a subject. The blue dots represent the actual measurements, the continuous line",
                            "shows the group (treatment) marginal predicted values, and the dashed line indicates each individual's",
                            "predicted values"),
-                    tags$p("By examining how closely the lines fit the data points, we can assess how well the model fits",
-                           "the data.", "In our example, the model generally fits the data well, except for certain subjects, such as",
+                    tags$p("By examining how closely the lines fit the data points, the user can assess how well the model fits",
+                           "the data.", "In this example, the model generally fits the data well, except for certain subjects, such as",
                            "mouse 2 and mouse 10."),
                     tags$figure(
                       tags$img(
-                        width = 1000,
+                        width = "100%",
                         src = "Fig7.png"
                       ),
                       tags$figcaption(tags$b("Figure 7. a, "), "Table with some metrics about the model performance.", 
@@ -342,8 +401,8 @@ ui <- fluidPage(
                card(id = "power_analysis", h2("Power Analysis"),
                     card(id = "posthoc",
                          card_header(h3("Post Hoc Power Analysis")),
-                         tags$p("The", tags$b("Post Hoc Power Analysis"), "allows users to check the statistical power of our dataset and fitted model",
-                                "for the synergy analysis using the Bliss and HSA reference models."),
+                         tags$p("The", tags$b("Post Hoc Power Analysis"), "allows users to check the statistical power of the dataset and fitted model",
+                                "for synergy analysis using the Bliss and HSA reference models."),
                          tags$p("The post hoc power calculation is based on simulations, and depending on the dataset, it can take",
                                 "some time to run. The power is returned as the proportion of simulations resulting in a significant synergy",
                                 "hypothesis test."),
@@ -353,7 +412,7 @@ ui <- fluidPage(
                          
                          tags$figure(
                            tags$img(
-                             width = 1000,
+                             width = "100%",
                              src = "Fig8.png"
                            ),
                            tags$figcaption(tags$b("Figure 8. a, "),"Side panel for running the post hoc power analysis.", 
@@ -363,24 +422,24 @@ ui <- fluidPage(
                     ),
                     card(id = "apriori",
                          card_header(h3("A Priori Power Analysis")),
-                         tags$p("We can also perform three different types of a priori power",
+                         tags$p("The user can also perform three different types of a priori power",
                                 "analyses by modifying various experimental variables. To do this, 'SynergyLMM' creates exemplary datasets using the estimates from the fitted model",
-                                "in the", tags$b("Fit Model for Tumor Growth Data"), "tab.",
+                                "in the", tags$b("Model Estimation"), "tab.",
                                 "Then, several parameters can be modified and evaluated by the user, such as: the number of subjects per group, the days of measurements,",
                                 "the coefficients (tumor growth rates) for each treatment group, the standard deviation of the random effects (between-subject variance),",
                                 "and the standard deviation of the residuals (within-subject variance)."),
                          tags$p("SynergyLMM then provides the a priori power calculation for each exemplary dataset defined by a specific set of experimental parameters."),
-                         card(tags$h4(id = "samplesize", "Sample Size Power Analysis"),
+                         card(tags$h4(id = "samplesize", "Sample Size"),
                               tags$p("The first option that can be tested is how the power would vary as the sample size per group changes.",
                                      "To do this, an exemplary dataset is used to fit models with the same values for all parameters (coefficients for the different",
                                      "treatment groups, standard deviations of the random effects and residuals, number of time points, etc.) as in the fitted model,",
                                      "but varying the sample size in each group. The user can select the range of sample sizes to evaluate and the reference model to use (Fig. 9a)."),
                               tags$p("When clicking 'Run Sample Size Power Analysis', a plot with the exemplary data and another showing the power variation with the",
-                                     "sample size are displayed (Fig. 9b). You can confirm that the values shown in the exemplary data plot are the same as the",
+                                     "sample size are displayed (Fig. 9b). It can be confirmed that the values shown in the exemplary data plot are the same as the",
                                      "model estimates shown in Fig. 1c."),
                               tags$figure(
                                 tags$img(
-                                  width = 1000,
+                                  width = "100%",
                                   src = "Fig9.png"
                                 ),
                                 tags$figcaption(tags$b("Figure 9. a, "), 
@@ -396,19 +455,19 @@ ui <- fluidPage(
                          card(tags$h4(id = "timepwr", "Time Power Analysis"),
                               tags$p("Another parameter that can affect statistical power is the duration of follow-up or the frequency of measurements.",
                                      "Given the results of a pilot experiment, the user may wonder how the results would change if tumor growth were monitored for",
-                                     "a longer time period, or how often tumor growth measurements should be taken. To address this, we can evaluate statistical",
+                                     "a longer time period, or how often tumor growth measurements should be taken. To address this, the user can evaluate statistical",
                                      "power by varying the maximum follow-up time or the frequency of measurements, while keeping the other parameters fixed,",
                                      "as determined from the fitted model."),
                               tags$h5("Maximum Time of Follow-up"),
-                              tags$p("First, we can examine how power changes if we increase or decrease the follow-up duration. To do this, we select",
-                                     "the analysis based on the maximum time of follow-up ('max'), as shown in Fig. 10a. We can also select the sample size",
-                                     "per group, the time interval between measurements, and the reference model to use. For this example, we will analyze",
-                                     "how power varies from 3 to 42 days of follow-up, with 5 subjects per group, and measurements",
+                              tags$p("First, it can be examined how power changes if the follow-up time is increased or decreased. To do this, select",
+                                     "the analysis based on the maximum time of follow-up ('max'), as shown in Fig. 10a. The sample size",
+                                     "per group, the time interval between measurements, and the reference model to use can be also specified. For this example, the analysis evaluated",
+                                     "how power varied from 3 to 42 days of follow-up, with 5 subjects per group, and measurements",
                                      "taken every 3 days."),
                               
                               tags$figure(
                                 tags$img(
-                                  width = 1000,
+                                  width = "100%",
                                   src = "Fig10.png"
                                 ),
                                 tags$figcaption(tags$b("Figure 10. a, "), 
@@ -423,36 +482,36 @@ ui <- fluidPage(
                                            measurements. The dashed line indicates the statistical power threshold of 0.8.")
                                 
                               ),
-                              tags$p("In Fig. 10b, we can see how the power varies with the maximum time of follow-up. As expected, when the follow-up period is short,",
+                              tags$p("In Fig. 10b, it can be seen how the power varies with the maximum time of follow-up. As expected, when the follow-up period is short,",
                                      "the statistical power is low, and it increases as the follow-up time increases, until it reaches a point where",
                                      "the power does not increase significantly."),
                               tags$h5("Frequency of Measurements"),
                               tags$p("Another question that researchers may have is how frequently the measurements should be taken. Of course, this would depend, among other factors,",
-                                     "on practical considerations, but we can simulate it to estimate the ideal frequency of measurements."),
+                                     "on practical considerations, but it can be simulated to estimate the ideal frequency of measurements."),
                               tags$p("Again, for this analysis, all the parameters are fixed, and the only variation is how frequently the measurements are taken,",
                                      "which is defined by the number of evenly spaced measurements performed during the follow-up period.",
-                                     "For this example, we analyze how the power varies from 3 to 26 evenly spaced measurements, with 5 subjects per group and a follow-up",
+                                     "For this example, the analysis evaluated how the power varied from 3 to 26 evenly spaced measurements, with 5 subjects per group and a follow-up",
                                      "period of 42 days (Fig. 10c)."),
                               tags$p("As shown in Fig. 10d, the power increases as the number of measurements increases, although the difference is not dramatic.")
                               ),
                          
-                         card(tags$h4(id = "variability", "Variability Power Analysis"),
-                              tags$p("Finally, another factor that can affect power is the variability in our data. The variability in our model",
+                         card(tags$h4(id = "variability", "Data Variability Power Analysis"),
+                              tags$p("Finally, another factor that can affect statistical power is the variability in the data. The variability in the model",
                                      "is represented by the standard deviation of the random effects (between-subject variability) and the standard",
                                      "deviation of the residuals (within-subject variability), which can be obtained from the table shown in Fig. 1c."),
-                              tags$p("Additionally, another factor influencing statistical power is the magnitude of the differences: the greater the effect",
+                              tags$p("Additionally, the statistical power is also influenced by the magnitude of the differences: the greater the effect",
                                      "of the drug combination, the higher the statistical power to detect synergistic effects."),
-                              tags$p("We can test how statistical power varies by modifying the variability and the drug combination effects in the",
+                              tags$p("The user can test how statistical power varies by modifying the variability and the drug combination effects in the",
                                      "'Variability Power Analysis' side panel (Fig. 11a)."),
                               tags$p("In this case, the parameters that vary are the standard deviations of the random effects and the residuals, as",
                                      "well as the effect of the drug combination, represented by the coefficient of the drug combination group",
                                      "(i.e., tumor growth rate in the drug combination group). By default, these parameters are evaluated over a range",
-                                     "from 10% to 200% of the values obtained from the model fitted in the ", tags$b("Fit Model for Tumor Growth Data"),
+                                     "from 10% to 200% of the values obtained from the model fitted in the ", tags$b("Model Estimation"),
                                      "tab, but they can be modified by checking the 'Show Advanced Options' box."),
                               
                               tags$figure(
                                 tags$img(
-                                  width = 1000,
+                                  width = "100%",
                                   src = "Fig11.png"
                                 ),
                                 tags$figcaption(tags$b("Figure 11. a, "), 
@@ -481,7 +540,7 @@ ui <- fluidPage(
     
     
     # 1. Tab for the tumor growth analysis ----
-    tabPanel("Fit Model for Tumor Growth Data",
+    tabPanel("Model Estimation",
              sidebarLayout(
                sidebarPanel(
                  h5("Upload Data") %>% helper(type = "markdown", content = "data_upload"),
@@ -550,7 +609,7 @@ ui <- fluidPage(
                  hidden(selectInput("estimates_file_type", "Select file type:",
                              choices = c("CSV" = "csv", "TXT" = "txt", "XLSX" = "xlsx"))),
                  card(h3(textOutput("model_plot_header")),
-                 plotOutput("model_plot", height = 800)),
+                 plotOutput("model_plot", width = "100%", height = 800)),
                  hidden(downloadButton("downloadModelPlot", "Download Plot")),
                  hidden(selectInput("model_plot_file", "Select file type:",
                                     choices = c("PDF" = "pdf", "PNG" = "png", "SVG" = "svg")))
