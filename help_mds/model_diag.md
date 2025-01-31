@@ -23,12 +23,12 @@ Observations with absolute standardized residuals greater than the $1−0.05/2$ 
 #### Examples
 
 **Model Assumptions Adequately Satisfied**
-![Normally distributed random effects and residuals](normal.png){width="750"}
+![Normally distributed random effects and residuals](normal.png){width="100%"}
 _Example plots of normally distributed random effects and normal and homoscedastic residuals. Note that most of the points lie on the diagonal line in the two Q-Q plots on the top, indicating normality of the random effects and residuals. Also note how the residuals are randomly distributed around the horizontal line in the bottom plots, indicating homoscedasticity._
 
 
 **Violation of Model Assumptions**
-![Non-normally distributed random effects and residuals](non_normal.png){width="750"}
+![Non-normally distributed random effects and residuals](non_normal.png){width="100%"}
 _Example plot of non-normally distributed random effects and non-normal, heterocedastic residuals. Note the deviation of several points (which could be potential outliers) from the diagonal line in the two Q-Q plots on the top. Also note how there is a clear pattern of the residuals in the bottom plots, indicating heteroscedasticity._
 
 ### Possible Solutions

@@ -6,7 +6,7 @@ Cook's distances quantify the influence of each subject on the estimated coeffic
 
 By default, the threshold to highlight influential subjects is set to the 90th percentile of the Cook's distances values of all individuals. This can be modified in the _Advanced Options_ menu.
 
-![Cook's Distances](cooksD.png){width="750"}
+![Cook's Distances](cooksD.png){width="100%"}
 _Example Cook's distances plot highliting three subjects with a high influence in the coefficient for the group._
 
 #### log-likelihood Displacements
@@ -15,5 +15,5 @@ Log-likelihood displacement values provide insight into the influence of each su
 
 By default, the threshold to highlight influential subjects is set to the 90th percentile of the log-likelihood displacement values of all individuals. This can be modified in the _Advanced Options_ menu.
 
-![loglik displacements](loglik.png){width="750"}
+![loglik displacements](loglik.png){width="100%"}
 _Example log-likelihood displacements plot highliting three subjects with a high influence in the model._
