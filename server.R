@@ -123,6 +123,77 @@ server <- function(input, output, session) {
     updateNumericInput(session, "time_end", value = max(time_values, na.rm = TRUE))
   })
   
+  # Dynamically generate UI for selecting Control treatment name
+  
+  output$control_group <- renderUI({
+    req(input$treatment_col)
+    req(data())
+    # Extract treatment names
+    trt_names <- data()[[input$treatment_col]]
+    # Select input
+    selectInput("control_group",
+                "Control Group Name:",
+                choices = unique(trt_names),
+                multiple = FALSE)
+  })
+  
+  # Dynamically generate UI for selecting Drug A treatment name
+  
+  output$drug_a <- renderUI({
+    req(input$treatment_col)
+    req(data())
+    # Extract treatment names
+    trt_names <- data()[[input$treatment_col]]
+    # Select input
+    selectInput("drug_a",
+                "Drug A Group Name:",
+                choices = unique(trt_names),
+                multiple = FALSE)
+  })
+  
+  # Dynamically generate UI for selecting Drug B treatment name
+  
+  output$drug_b <- renderUI({
+    req(input$treatment_col)
+    req(data())
+    # Extract treatment names
+    trt_names <- data()[[input$treatment_col]]
+    # Select input
+    selectInput("drug_b",
+                "Drug B Group Name:",
+                choices = unique(trt_names),
+                multiple = FALSE)
+  })
+  
+  # Dynamically generate UI for selecting Drug C treatment name (if present)
+  
+  output$drug_c <- renderUI({
+    req(input$treatment_col)
+    req(data())
+    # Extract treatment names
+    trt_names <- data()[[input$treatment_col]]
+    # Select input
+    selectInput("drug_c",
+                "Drug C Group Name (if present; leave empty otherwise):",
+                choices = c(unique(trt_names), ""), 
+                selected = "",
+                multiple = FALSE)
+  })
+  
+  # Dynamically generate UI for selecting Control treatment name
+  
+  output$combination <- renderUI({
+    req(input$treatment_col)
+    req(data())
+    # Extract treatment names
+    trt_names <- data()[[input$treatment_col]]
+    # Select input
+    selectInput("combination",
+                "Combination Group Name (Drug A + Drug B [+ Drug C, if present]):",
+                choices = unique(trt_names),
+                multiple = FALSE)
+  })
+  
   # Reactive to run the analysis when the button is clicked
   model_results <- eventReactive(input$run_analysis, {
     req(
