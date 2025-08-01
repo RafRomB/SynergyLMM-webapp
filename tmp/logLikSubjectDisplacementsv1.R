@@ -11,32 +11,14 @@ NULL
 #' @param cx Subject to remove from the data to build the model
 #' @param model An object of class "lme" representing the linear mixed-effects model fitted by [`lmmModel()`],
 #' and fitted using maximum likelihood.
-#' @param maxIter Limit of maximum number of iterations for the optimization algorithm. Default to 1000. 
 #' @returns A list with the leave-one-out model fits
 #' @keywords internal
 #' @noRd
 
-.lmeU <- function(cx, model, maxIter){
+.lmeU <- function(cx, model){
   SampleID <- NULL
   dfU <- subset(model$data, SampleID != cx) ## LOO data
-  # update(model, data = dfU)
-  maxIter.tmp <- 50
-  repeat{
-    tmp.update <- suppressWarnings(
-      try(update(model, data = dfU, control = list(maxIter = maxIter.tmp)), silent = T)
-    )
-    if (any(class(tmp.update) == "try-error")) {
-      maxIter.tmp <- 2 * maxIter.tmp
-      if (maxIter.tmp > maxIter) {
-        warning(paste0("Maximum number of iterations (", maxIter, ") exceeded for SampleID = ", cx,
-                       ". Cook distance not calculated for SampleID = ", cx))
-        return(0)
-      }
-    } else {
-      break
-    }
-  }
-  tmp.update
+  update(model, data = dfU)
 }
 
 # logLik1 function for varStruct with LOO data
@@ -105,7 +87,7 @@ NULL
     lLik.s <- nlmeU::logLik1(lmeU, df.s) # ... and log-likelihood  
   } else{
     if(is.null(var_name)){
-      stop("`var_name` cannot be NULL if a variance structure has been specified in the model")
+      stop("`var_name` cannot be NULL if a variance estructure has been specified in the model")
     }
     lLik.s <- .logLik1.varIdent_loo(lmeU, df.s, model, var_name) # ... and log-likelihood
   }
@@ -117,12 +99,11 @@ NULL
 #' `logLikSubjectDisplacements` allows the user to evaluate the log-likelihood displacement for each subject, 
 #' indicating the influence of every subject to the model.
 #' @param model An object of class "lme" representing the linear mixed-effects model fitted by [`lmmModel()`].
-#' @param disp_thrh Numeric value indicating the threshold of log-likelihood displacement. If not specified, the threshold is set to three times the mean of the log-likelihood
+#' @param disp_thrh Numeric value indicating the threshold of log-likelihood displacement. If not specified, the threshold is set to the 90% percentile of the log-likelihood
 #' displacement values.
 #' @param label_angle Numeric value indicating the angle for the label of subjects with a log-likelihood displacement greater than `disp_thrh`.
 #' @param var_name Name of the variable for the weights of the model in the case that a variance structure has been specified using [nlme::varIdent()].
 #' (See examples in [`lmmModel()`]).
-#' @param verbose Logical indicating if subjects with a log-likelihood displacement greater than `disp_thrh` should be printed to the console.
 #' @param ... Extra arguments, if any, for [lattice::panel.xyplot].
 #' @details
 #' The evaluation of the log-likelihood displacement is based in the analysis proposed in Verbeke and Molenberghs (2009) and Gałecki and Burzykowski (2013).
@@ -183,21 +164,9 @@ logLikSubjectDisplacements <- function(model,
                                        disp_thrh = NA,
                                        label_angle = 0,
                                        var_name = NULL,
-                                       verbose = TRUE,
                                        ...) {
-  tryCatch({
-    if (!"explme" %in% class(model)) {
-      stop(
-        "Calculation of likelihood displacements are only available for exponential growth models ('explme')."
-      )
-    }
-  }, error = function(e) {
-    stop("Error in model class: ", e$message)
-  })
   
-  data <- model$data
   model <- update(model, method = "ML")
-  model$data <- data
   
   # Fitting the model to "leave-one-out" data
   
@@ -220,23 +189,20 @@ logLikSubjectDisplacements <- function(model,
   # Plot of the likelihood displacements with an indication of outlying values
   
   if(is.na(disp_thrh)){
-    disp_thrh <- round(3*mean(dif.2Lik),3)
+    disp_thrh <- round(quantile(dif.2Lik, probs = 0.9),3)
   }
   
   outL <- dif.2Lik > disp_thrh # Outlying LDi's
   
   if(sum(outL) == 0){
-      message(paste("No subject with a log-likelihood displacement greater than:", disp_thrh))
-  } else {
-    if (verbose) {
-      print(paste(
-        "Outliers with Log Likelihood displacement greater than:",
-        disp_thrh
-      ))
-      print(dif.2Lik[outL]) 
-    }
+    writeLines(paste("No subject with a log-likelihood displacement greater than", disp_thrh))
   }
   
+  print(paste(
+    "Outliers with Log Likelihood displacement greater than:",
+    disp_thrh
+  ))
+  print(dif.2Lik[outL])
   
   subject.f <- factor(subject.c, levels = subject.c)
   myPanel <- function(x, y, ...) {
@@ -267,7 +233,7 @@ logLikSubjectDisplacements <- function(model,
     main = "Log Likelihood-displacement values vs Subjects rank"
   )
   lxlims <- length(dtp$x.limits)
-  plot(update(
+  print(update(
     dtp,
     xlim = rep("", lxlims),
     grid = "h",

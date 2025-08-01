@@ -563,6 +563,7 @@ ui <- fluidPage(
                  uiOutput("drug_c"),
                  uiOutput("combination"),
                  numericInput("min_observations", "Minimum Observations per Subject:", value = 1) %>% helper(type = "markdown", content = "min_obs"),
+                 selectInput("grwth_model", label = "Growth Model", choices = list("Exponential" = "exp", "Gompertz" = "gompertz"), selected = "exp"),
                  checkboxInput("show_plot", "Show Plot", value = TRUE),
                  checkboxInput("model_advanced", "Show Advanced Options", value = FALSE),
                  conditionalPanel(
@@ -582,6 +583,16 @@ ui <- fluidPage(
                             "1 unit to all."),
                    selectInput("tum_vol_0", "Null Tumor Measurement Transformation", 
                                choices = c("ignore", "transform"), selected = "ignore"),
+                   helpText("Use 'Define' to specify the start values, or 'selfStart' for self-starting values."),
+                   conditionalPanel(
+                     condition = "input.grwth_model == 'gompertz'",
+                     selectInput("selfStart_sel", label = "Start values for Gompertz model", choices = c("selfStart", "Define"), selected = "Define"),
+                     conditionalPanel(
+                       condition = "input.selfStart_sel == 'Define'",
+                       numericInput("r0", "r0 value", value = 0.05),
+                       numericInput("rho", "rho value", value = 0.01)
+                     )
+                   ),
                    helpText("Increasing these values can help when convergence",
                             "errors appear."),
                    h5("Control values for the estimation algorithm") %>% helper(type = "markdown", content = "lmecontrol"),
@@ -591,12 +602,27 @@ ui <- fluidPage(
                    numericInput("msMaxIter", "msMaxIter", value = 50),
                    helpText("Number of iterations for the expectation-maximization algorithm used to refine the initial estimates of the random effects variance-covariance coefficients. Default is 25."),
                    numericInput("niterEM", "niterEM", value = 25),
-                   helpText("Maximum number of evaluations of the objective function permitted for 'nlminb' optimizer. Default is 200."),
-                   numericInput("msMaxEval", "msMaxEval", value = 200),
-                   helpText("The optimizer to be used, either 'nlminb' (the default) or 'optim'.",
-                            "Choosing 'optim' can help with convergence problems."),
-                   selectInput("opt", "opt", 
-                               choices = c("nlminb", "optim"), selected = "nlminb")
+                   conditionalPanel(
+                     condition = "input.grwth_model == 'exp'",
+                     helpText("Maximum number of evaluations of the objective function permitted for 'nlminb' optimizer. Default is 200."),
+                     numericInput("msMaxEval", "msMaxEval", value = 200)
+                   ),
+                   conditionalPanel(
+                     condition = "input.grwth_model == 'gompertz'",
+                     helpText("maximum number of iterations for the PNLS optimization step inside the nlme optimization. Default is 7."),
+                     numericInput("pnlsMaxIter", "pnlsMaxIter", value = 7)
+                   ),
+                   helpText("The optimizer to be used, with 'nlminb' as the default."),
+                   conditionalPanel(
+                     condition = "input.grwth_model == 'exp'",
+                     selectInput("opt", "opt", 
+                                 choices = c("nlminb", "optim"), selected = "nlminb")
+                   ),
+                   conditionalPanel(
+                     condition = "input.grwth_model == 'gompertz'",
+                     selectInput("opt", "opt", 
+                                 choices = c("nlminb", "nlm"), selected = "nlminb")
+                   ),
                  ),
                  actionButton("run_analysis", "Run Analysis")
                  ), 
@@ -639,7 +665,7 @@ ui <- fluidPage(
                             "and obtain reproducible results."),
                    checkboxInput("setseed_ra", "Obtain reproducible results.", value = FALSE),
                    helpText("Set the number of random resampling to calculate the synergy for Response Additivity model."),
-                   numericInput("ra_nsim", "Number of Simulations for RA model", value = 1000)
+                   numericInput("nsim", "Number of Simulations for RA model", value = 1000)
                  ),
                  actionButton("syn_calc", "Run Synergy Calculation"), width = 3,
                ),
@@ -656,6 +682,12 @@ ui <- fluidPage(
                  DTOutput("synergy_results_table"),
                  hidden(downloadButton("downloadSynergy", "Download Synergy Results")),
                  hidden(selectInput("synergy_file_type", "Select file type:",
+                                    choices = c("CSV" = "csv", "TXT" = "txt", "XLSX" = "xlsx"))),
+                 h3(textOutput("synergy_estimates_table_header")),
+                 br(),
+                 DTOutput("synergy_estimates_table"),
+                 hidden(downloadButton("downloadSynEstimates", "Download Model Estimates")),
+                 hidden(selectInput("syn_estimates_file_type", "Select file type:",
                                     choices = c("CSV" = "csv", "TXT" = "txt", "XLSX" = "xlsx")))
                )
              )
@@ -667,22 +699,38 @@ ui <- fluidPage(
                sidebarPanel(
                  card(h3("Model Diagnostics") %>% helper(type = "markdown", content = "model_diag", size = "l"),
                  helpText("Plots and results shown in this tab help verify that the model is appropriate for the data.",
-                          "Reliable results from statistical tests require that model assumptions—such as normality and homoscedasticity of random effects and residuals—are met.",
+                          "Reliable results from statistical tests require that model assumptions — such as normality and homoscedasticity of random effects and residuals — are met.",
                           "Therefore, users are recommended to thoroughly evaluate the estimated model, as certain experimental datasets may result in highly imprecise estimates.",
                           "More information about interpretation of model diagnostics can be found clicking in the '?' icon.")),
                  card(h3("Influential Diagnostics") %>% helper(type = "markdown", content = "influential_diag", size = "l"),
                  helpText("Influential diagnostics allow the user to identify highly influential subjects (animals) in the experiment.", 
-                          "These options include detecting those subjects with a significant influence on the estimation of control and",
-                          "treatment group coefficients for growth rates, as evaluated using Cook’s distances, as well as identifying subjects",
-                          "with a substantial impact on the overall model, as assessed with log-likelihood displacements, as well as identifying.",
+                          "It is based on detecting those subjects with a higher influence on the fitted values, or in the estimation of control and",
+                          "treatment groups estimated coefficients. In both cases, the results are evaluated using Cook’s distances.",
                           "More information about interpretation of model diagnostics can be found clicking in the '?' icon.")),
                  checkboxInput("influential_advanced", "Show Advanced Options", value = FALSE),
                  conditionalPanel(
                    condition = "input.influential_advanced == true",
-                   helpText("Set a numeric value indicating the threshold for the Cook's distance. If not specified, the threshold is set to the 90th percentile of the Cook's distances values."),
+                   selectInput("diag_norm_test", 
+                               label = "Test for normality assessment:", 
+                               choices = c("Shapiro - Wilk Normality Test" = "shapiroTest",
+                                           "D'Agostino Normality Test" = "dagoTest",
+                                           "Anderson - Darling Normality Test" = "adTest"),
+                               selected = "shapiroTest"),
+                   helpText("Threshold for the p-value of outlier observations based on their normalized residuals."),
+                   numericInput("diag_pval",
+                                label = "Threshold p-value for outliers:",
+                                value = 0.05, min = 0, max = 1),
+                   helpText("Set a numeric value indicating the threshold for the Cook's distance. If not specified, the threshold is set to three times the mean of the Cook's distances values."),
                    numericInput("cook_thr", "Threshold for Cook's distance:", value = NA),
-                   helpText("Set a numeric value indicating the threshold of log-likelihood displacement. If not specified, the default threshold is set to the 90th percentile of the log-likelihood displacement values."),
-                   numericInput("disp_thrh", "Threshold for log-likelihood displacement:", value = NA)
+                   helpText("Type of Cook's distance to calculated. Possible options are 'fitted', to calculte Cook's distances based on the change in fitted values, 
+                            or 'fixef' to calculate Cook's distances based on the change in the fixed effects. "),
+                   selectInput("cook_type", label = "Type of Cook's distance to calculated:",
+                               choices = c("fitted", "fixef"), selected = "fitted"),
+                   helpText("Cook's distances calculation implies re-fitting multiple models. In some cases,
+                            the fitting process can fail due to convergence issues, especially when using the Gompertz model. 
+                            The maximum number of iterations can be increased to solve those issues."),
+                   numericInput("maxIter_cook", label = "Limit of maximum number of iterations for the optimization algorithm:",
+                                value = 1000)
                  ),
                  width = 3,
                ),
@@ -705,12 +753,7 @@ ui <- fluidPage(
                  plotOutput("cook_dist", height = 800),
                  verbatimTextOutput("cook_dist_sub"),
                  hidden(downloadButton("downloadCooksDist", "Download Cook's Distances")),
-                 br(),
-                 br(),
-                 h3(textOutput("loglik_disp_header")),
-                 plotOutput("loglik_disp", height = 800),
-                 verbatimTextOutput("loglik_disp_sub"),
-                 hidden(downloadButton("downloadloglikDisp", "Download log-likelihood displacements"))
+                 br()
                )
              )
     ),

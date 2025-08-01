@@ -6,7 +6,7 @@ NULL
 
 #' @title Plotting of tumor growth data from a fitted model
 #' @description
-#'  Vizualization of tumor growth data and linear mixed model fitted regression line for the fixed effects. This functions returns a [ggplot2](https://ggplot2.tidyverse.org/) plot, allowing for
+#'  Vizualization of tumor growth data and linear mixed model fitted regression line for the fixed effects. This functions returns a [ggplot2] plot, allowing for
 #'  further personalization.
 #' @param model An object of class "lme" representing the linear mixed-effects model fitted by [`lmmModel()`].
 #' @param trt_control String indicating the name assigned to the 'Control' group.
@@ -59,6 +59,27 @@ plot_lmmModel <- function(model,
          "in the arguments.")
   }
   
+  if (!is.na(drug_c)) {
+    segment_data <- data.frame(x = rep(0,5), 
+                               xend = model$dt1 %>% dplyr::group_by(Treatment) %>% dplyr::summarise(Max = max(Time)) %>% dplyr::select(Max),
+                               y = rep(0, 5), 
+                               yend = nlme::fixef(model))
+  } else {
+    segment_data <- data.frame(x = rep(0,4), 
+                               xend = model$dt1 %>% dplyr::group_by(Treatment) %>% dplyr::summarise(Max = max(Time)) %>% dplyr::select(Max),
+                               y = rep(0, 4), 
+                               yend = nlme::fixef(model))
+  }
+  
+  
+  
+  segment_data$yend <- segment_data$Max*segment_data$yend
+  colnames(segment_data) <- c("x", "xend", "y", "yend")
+  if (!is.na(drug_c)){
+    segment_data$Treatment <- factor(x = c(trt_control, drug_a, drug_b, drug_c, combination), levels = c(trt_control, drug_a, drug_b, drug_c, combination))
+  } else {
+    segment_data$Treatment <- factor(x = c(trt_control, drug_a, drug_b, combination), levels = c(trt_control, drug_a, drug_b, combination))
+  }
   hline <- data.frame(yintercept = 0)
   trt_col <- c("#3c3c3b", "#d50c52", "#00a49c", "#ff7f55","#601580")
   
@@ -66,29 +87,19 @@ plot_lmmModel <- function(model,
     trt_col <- trt_col[c(1:3,5)]
   }
   
-  plot_df <- model$data %>%
-    dplyr::mutate(fixed_effect = predict(model, level = 0))  # level = 0 = fixed only
-  
-  # Add manually data at time zero
-  initial_points <- model$data %>%
-    dplyr::distinct(SampleID, Treatment) %>%
-    dplyr::mutate(Time = 0, logRTV = 0)
-  initial_points <- initial_points %>%
-    dplyr::mutate(fixed_effect = 0)
-  
-  plot_df <- dplyr::bind_rows(plot_df, initial_points)
-  
-  
-  p <- plot_df %>% 
+  p <- model$dt1 %>% 
     ggplot(aes(Time, logRTV, color = Treatment)) +
     geom_line(aes(group = SampleID), alpha = 0.33) + geom_point(aes(group = SampleID)) +
-    geom_line(aes(y = fixed_effect, group = SampleID), lwd = 1, alpha = 0.8) +
     ylab("log (RTV)") + 
     xlab("Time since start of treatment") + 
     scale_x_continuous(breaks = unique(model$dt1$Time)) + 
     cowplot::theme_cowplot() + facet_wrap(~Treatment) +
+    geom_segment(data = segment_data, 
+                 aes(x = x, xend = xend, y = y, yend = yend), 
+                 lwd = 1.25, alpha = 0.75) + 
     geom_hline(data = hline, aes(yintercept = yintercept), linetype = "dashed") +
-    scale_color_manual(values = trt_col)
+    scale_color_manual(values = trt_col) + 
+    theme(strip.background = element_rect(fill = "cyan4"), strip.text = element_text(color = "white", face = "bold", size = 12))
   return(p)
 }
 

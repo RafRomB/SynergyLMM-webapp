@@ -194,6 +194,7 @@ server <- function(input, output, session) {
                 multiple = FALSE)
   })
   
+  
   # Reactive to run the analysis when the button is clicked
   model_results <- eventReactive(input$run_analysis, {
     req(
@@ -222,11 +223,15 @@ server <- function(input, output, session) {
     min_observations <- input$min_observations
     show_plot <- input$show_plot
     tum_vol_0 <- input$tum_vol_0
+    grwth_model <- input$grwth_model
     maxIter <- input$maxIter
     msMaxIter <- input$msMaxIter
     niterEM <- input$niterEM
     msMaxEval <- input$msMaxEval
+    pnlsMaxIter <- input$pnlsMaxIter
     opt <- input$opt
+    
+    # Variance Structure
     
     weights <- NULL
     
@@ -245,12 +250,22 @@ server <- function(input, output, session) {
       weights <- nlme::varIdent(form = ~1|Treatment)
     }
     
+    # Self start values
+    
+    start_values <- NULL
+    
+    if (input$selfStart_sel == "selfStart") {
+      start_values <- "selfStart"
+    } else if (input$selfStart_sel == "Define") {
+      start_values <- c(input$r0, input$rho)
+    }
 
     # Fit the model using getRTV and lmmModel
     withCallingHandlers({
       result <- tryCatch({
         lmmModel(
           data = data(),
+          grwth_model = grwth_model,
           sample_id = sample_id,
           time = time,
           treatment = treatment,
@@ -265,10 +280,12 @@ server <- function(input, output, session) {
           min_observations = min_observations,
           show_plot = show_plot,
           tum_vol_0 = tum_vol_0,
+          start_values = start_values,
           maxIter = maxIter,
           msMaxIter = msMaxIter,
           niterEM = niterEM,
           msMaxEval = msMaxEval,
+          pnlsMaxIter = pnlsMaxIter,
           opt = opt,
           weights = weights
         )
@@ -291,29 +308,21 @@ server <- function(input, output, session) {
   # Obtain model estimates
   
   modelEstimates <- reactive({
-    req(model_results())
-    if (length(nlme::fixef(model_results())) == 5){
-      lmmModel_estimates(model_results()) %>% rename(
-        "SD random effects" = "sd_ranef",
-        "SD residuals" = "sd_resid"
-      )
-    } else {
-      lmmModel_estimates(model_results()) %>% rename(
-        "SD random effects" = "sd_ranef",
-        "SD residuals" = "sd_resid"
-      )
+    req(model_results(), input$grwth_model)
+    if (input$grwth_model == "exp") {
+      lmmModel_estimates.explme(model_results())
+    } else if (input$grwth_model == "gompertz") {
+      lmmModel_estimates.gompertzlme(model_results())
     }
-    
   })
   
+
   # Render the model estimates
   output$model_estimates <- renderTable({
     req(modelEstimates())
-  }, striped = TRUE, digits = 5, caption = "Estimates calculated for the model. The
-  'Control', ' Drug A', 'Drug B' and, 'Combination' columns give the information about
-  the coefficients for each group (tumor growth rates), while the 'SD random effects' and
-  'SD residuals' indicate the standard deviation of random effects (between-subject variance),
-  and standard deviation of the residuals (within-subject variance), respectively.", rownames = TRUE)
+  }, striped = TRUE, digits = 5, caption = "Estimates calculated for the model. SD: Standard deviation.
+  'SD random effects' and 'SD residuals' indicate the standard deviation of random effects (between-subject variance),
+  and standard deviation of the residuals (within-subject variance), respectively.", rownames = FALSE)
   
   output$model_estimates_header <- renderText({
     req(input$run_analysis)
@@ -407,7 +416,7 @@ server <- function(input, output, session) {
           min_time = input$min_time,
           robust = input$robustSE,
           type = input$se_type,
-          ra_nsim = input$ra_nsim,
+          nsim = input$nsim,
           show_plot = FALSE
         )
         return(result)
@@ -463,7 +472,7 @@ server <- function(input, output, session) {
   # Render the synergy results table
   output$synergy_results_table <- renderDT({
     req(synergy_results())
-    datatable(synergy_results()$Synergy, 
+    datatable(cbind(synergy_results()$Synergy[,1:2], round(synergy_results()$Synergy[,-c(1:2)], 3)), 
               caption = "Results of synergy calculation for each time point.
               'Model': Reference model used for synergy evaluation.
               'CI': Combination Index. 
@@ -500,6 +509,39 @@ server <- function(input, output, session) {
     "Synergy Results"
   })
   
+  # Render the synergy results table
+  output$synergy_estimates_table <- renderDT({
+    req(synergy_results())
+    datatable(round(synergy_results()$Estimates,3), 
+              caption = "Estimates calculated for the model. SD: Standard deviation.
+  'SD random effects' and 'SD residuals' indicate the standard deviation of random effects (between-subject variance),
+  and standard deviation of the residuals (within-subject variance), respectively.")
+  })
+  
+  # Download synergy results
+  observeEvent(input$syn_calc, {shinyjs::delay(1000, shinyjs::show("syn_estimates_file_type"))})
+  observeEvent(input$syn_calc, {shinyjs::delay(1000, shinyjs::show("downloadSynEstimates"))})
+  
+  output$downloadSynEstimates <- downloadHandler(
+    filename = function() {
+      paste("synergy_estimates_results_", Sys.Date(), ".", input$syn_estimates_file_type, sep = "")
+    },
+    content = function(file) {
+      df <- synergy_results()$Estimates
+      if (input$syn_estimates_file_type == "csv") {
+        write.csv(df, file, row.names = FALSE)
+      } else if (input$syn_estimates_file_type == "txt") {
+        write.table(df, file, row.names = FALSE, sep = "\t")
+      } else if (input$syn_estimates_file_type == "xlsx") {
+        write.xlsx(df, file)
+      }
+    }
+  )
+  
+  output$synergy_estimates_table_header <- renderText({
+    req(input$syn_calc)
+    "Model Estimates"
+  })
   
   
   # Third tab: Diagnostics of the Model ----
@@ -507,11 +549,13 @@ server <- function(input, output, session) {
   # Diagnostics Plots
   
   modelDiagPlot <- reactive({
-    req(model_results(), input$run_analysis)
-    ranef.d <- plot_ranefDiagnostics(model = model_results()) # Plot of random effect diagnostics
-    resid.d <- plot_residDiagnostics(model = model_results()) # Plot of residual diagnostics
-    cowplot::plot_grid(ranef.d[[1]], resid.d[[4]],
-                       resid.d[[1]], resid.d[[5]], byrow = F)
+    withProgress(message = "Calculating Random Effects and Residuals Diagnostics", value = 0.25, {
+      req(model_results(), input$run_analysis)
+      ranef.d <- ranefDiagnostics(model = model_results(), verbose = F) # Plot of random effect diagnostics
+      resid.d <- residDiagnostics(model = model_results(), verbose = F) # Plot of residual diagnostics
+      cowplot::plot_grid(ranef.d$Plots[[1]], resid.d$Plots[[4]],
+                         resid.d$Plots[[1]], resid.d$Plots[[5]], byrow = F)
+    })
   })
   
   # Render plot
@@ -547,28 +591,35 @@ server <- function(input, output, session) {
   })
   # Output the Normality Tests
   output$ranef_norm <- renderPrint({
-    req(model_results(), input$run_analysis)
-    fBasics::shapiroTest(nlme::ranef(model_results())$Time, 
-                         title = "Shapiro - Wilk Normality Test of random effects")
+    withProgress(message = "Calculating Random Effects and Residuals Diagnostics", value = 0.40, {
+      req(model_results(), input$run_analysis)
+      ranef.d <- ranefDiagnostics(model_results(), norm_test = input$diag_norm_test, verbose = FALSE)
+      ranef.d$Normality
+    })
   })
   output$normality_ranef_header <- renderText({
     req(input$run_analysis)
-    "Shapiro-Wilk's Normality Test for Random Effects"
+    "Normality Test for Random Effects"
   })
   output$resid_norm <- renderPrint({
-    req(model_results(), input$run_analysis)
-    fBasics::shapiroTest(resid(model_results(), type = "normalized"), 
-                         title = "Shapiro - Wilk Normality Test of normalized residuals")
+    withProgress(message = "Calculating Random Effects and Residuals Diagnostics", value = 0.60, {
+      req(model_results(), input$run_analysis)
+      resid.d <- residDiagnostics(model_results(), norm_test = input$diag_norm_test, 
+                                  pvalue = input$diag_pval, verbose = FALSE)
+      resid.d$Normality
+    })
   })
   output$normality_resid_header <- renderText({
     req(input$run_analysis)
-    "Shapiro-Wilk's Normality Test for Normalized Residuals"
+    "Normality Test for Normalized Residuals"
   })
   
   # Outliers
   output$resid_outliers <- renderDT({
     req(model_results(), input$run_analysis)
-    datatable(residDiagnostics(model = model_results())$Outliers)
+    withProgress(message = "Calculating Random Effects and Residuals Diagnostics", value = 0.70, {
+      datatable(residDiagnostics(model = model_results())$Outliers)
+    })
   })
   
   # Download outliers
@@ -597,85 +648,19 @@ server <- function(input, output, session) {
   })
   
   ## Influential Diagnostics ----
-  ### log-likelihood displacements ----
-  
-  logLikDisp <- reactive({
-    req(model_results(), input$run_analysis)
-    withProgress(message = "Calculating log-likelihood displacements", value = 0.25, {
-      var_name <- NULL
-      if (input$model_heteroscedasticity == TRUE &&
-          input$varIdent == "SampleID") {
-        var_name <- "SampleID"
-      } else if (input$model_heteroscedasticity == TRUE &&
-                 input$varIdent == "Time") {
-        var_name <- "Time"
-      } else if (input$model_heteroscedasticity == TRUE &&
-                 input$varIdent == "Treatment") {
-        var_name <- "Treatment"
-      }
-      
-      logLikSubjectDisplacements(
-        model = model_results(),
-        disp_thrh = input$disp_thrh,
-        var_name = var_name
-      )
-    })
-  })
-  
-  # Render the Diagnostics Plots
-  output$loglik_disp <- renderPlot({
-    req(logLikDisp(), input$run_analysis)
-  })
-  
-  # Render console results
-  output$loglik_disp_sub <- renderPrint({
-    req(model_results(), input$run_analysis)
-    withProgress(message = "Calculating log-likelihood displacements", value = 0.5, {
-      var_name <- NULL
-      if (input$model_heteroscedasticity == TRUE &&
-          input$varIdent == "SampleID") {
-        var_name <- "SampleID"
-      } else if (input$model_heteroscedasticity == TRUE &&
-                 input$varIdent == "Time") {
-        var_name <- "Time"
-      } else if (input$model_heteroscedasticity == TRUE &&
-                 input$varIdent == "Treatment") {
-        var_name <- "Treatment"
-      }
-      
-      logLikSubjectDisplacements(
-        model = model_results(),
-        disp_thrh = input$disp_thrh,
-        var_name = var_name
-      )
-    })
-  })
-  
-  # Download loglik displacements
-  observeEvent(input$run_analysis, {shinyjs::delay(1000, shinyjs::show("downloadloglikDisp"))})
-  
-  output$downloadloglikDisp <- downloadHandler(
-    filename = function() {
-      paste("logLik_Disp_", Sys.Date(), ".txt", sep = "")
-    },
-    content = function(file) {
-      df <- logLikDisp()
-      write.table(df, file, row.names = TRUE, sep = "\t", col.names = "logLikDisp")
-    }
-  )
-  
-  
-  output$loglik_disp_header <- renderText({
-    req(input$run_analysis)
-    "Plot of the log-likelihood displacements by subject"
-  })
   
   ### Cook's Distances ----
   
   CookDist <- reactive({
     req(model_results(), input$run_analysis)
     withProgress(message = "Calculating Cook's Distances", value = 0.75, {
-      CookDistance(model = model_results(), cook_thr = input$cook_thr)
+      withCallingHandlers({
+        CookDistance(model = model_results(), type = input$cook_type, 
+                   maxIter = input$maxIter_cook, cook_thr = input$cook_thr)
+      }, warning = function(w) {
+        showNotification(paste("Warning:", w$message, collapse = "."), type = "warning", duration = 15)
+        invokeRestart("muffleWarning")
+      })
     })
   })
   
@@ -688,7 +673,7 @@ server <- function(input, output, session) {
   output$cook_dist_sub <- renderPrint({
     req(model_results(), input$run_analysis)
     withProgress(message = "Calculating Cook's Distances", value = 0.9, {
-      CookDistance(model = model_results(), cook_thr = input$cook_thr)
+      CookDistance(model = model_results(), type = input$cook_type, cook_thr = input$cook_thr)
     })
   })
   
@@ -709,6 +694,8 @@ server <- function(input, output, session) {
       write.table(df, file, row.names = TRUE, sep = "\t", col.names = "CooksDist")
     }
   )
+  
+  
   
   # Fourth tab: Performance of the Model ----
   
