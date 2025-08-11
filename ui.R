@@ -163,7 +163,7 @@ ui <- fluidPage(
                                  "The first step is uploading the longitudinal tumor burden-related measurements for the different treatment groups.
                                  The input consists of a tabular data in long format with at least 4 columns containing information abouth the samples IDs, the time points for each measurement, the treatment group, and the tumor measurement.",
                                  tags$b("b, "),
-                                 "The input data will then be processed to estimate the linear mixed effect model that fits the tumor growth dynamics for each subject, and estimate the growth rates for each treatment group.",
+                                 "The input data will then be processed to estimate the (non-)linear mixed effect model that fits the tumor growth dynamics for each subject, and estimate the growth rates for each treatment group.",
                                  tags$b("c, "), 
                                  "SynergyLMM offer various functions to evaluate the model diagnostics and model performance, as well as for the identification of potential outliers and influential individuals for the model fit and the treatment groups.",
                                  tags$b("d, "),
