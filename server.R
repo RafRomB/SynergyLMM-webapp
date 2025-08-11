@@ -618,9 +618,12 @@ server <- function(input, output, session) {
   output$resid_outliers <- renderDT({
     req(model_results(), input$run_analysis)
     withProgress(message = "Calculating Random Effects and Residuals Diagnostics", value = 0.70, {
-      datatable(residDiagnostics(model = model_results())$Outliers)
+      datatable(residDiagnostics(model = model_results())$Outliers, 
+                caption = "Observations with absolute normalized residuals greater than the (1 - 0.05/2)
+                quantile of the standard normal distribution are identified and reported as potential outliers.")
     })
   })
+  
   
   # Download outliers
   observeEvent(input$run_analysis, {shinyjs::delay(1000, shinyjs::show("outliers_file_type"))})
@@ -642,8 +645,8 @@ server <- function(input, output, session) {
     }
   )
   
-  output$resid_outliers_header <- renderText({
-    req(input$model_diagnostic)
+  output$outliers_header <- renderText({
+    req(input$run_analysis)
     "Potential Outlier Observations"
   })
   
@@ -754,13 +757,6 @@ server <- function(input, output, session) {
     req(input$model_performance)
     "Model Performance"
   })
-  
-  
-  
-  
-  
-  
-  
  
   
   # Fifth tab: Power Analysis ----
@@ -780,6 +776,17 @@ server <- function(input, output, session) {
   
   post_hoc_pwr_result <- eventReactive(input$post_hoc_pwr, {
     req(model_results())
+    
+    tryCatch({
+      if (!"explme" %in% class(model_results())) {
+        stop(
+          "Post hoc power calculation is only available for exponential growth models ('explme')."
+        )
+      }
+      
+    }, error = function(e) {
+      stop("Error in model class: ", e$message)
+    })
     
     if(input$setseed){
       set.seed(123)
@@ -808,15 +815,29 @@ server <- function(input, output, session) {
   
   SampleSizePwr <- reactive({
     req(model_results(), input$sample_size_pwr)
+    
+    
+    tryCatch({
+      if (!"explme" %in% class(model_results())) {
+        stop(
+          "A priori power calculation is only available for exponential growth models ('explme')."
+        )
+      }
+      
+    }, error = function(e) {
+      stop("Error in model class: ", e$message)
+    })
+    
+    
     model_estimates <- round(lmmModel_estimates(model = model_results()), 4)
     PwrSampleSize(npg = seq(from = min(input$sample_n), to = max(input$sample_n), by = 1),
                   time = unique(model_results()$dt1$Time), 
                   grwrControl = model_estimates[,1],
-                  grwrA = model_estimates[,2],
-                  grwrB = model_estimates[,3],
+                  grwrA = model_estimates[,3],
+                  grwrB = model_estimates[,5],
                   grwrComb = model_estimates$Combination, 
-                  sd_ranef = model_estimates$sd_ranef, 
-                  sgma = model_estimates$sd_resid,
+                  sd_ranef = model_estimates$`SD Random Effects`, 
+                  sgma = model_estimates$`SD Residuals`,
                   method = input$sample_size_pwr_method)
   })
   
@@ -856,6 +877,18 @@ server <- function(input, output, session) {
   
   TimePwr <- reactive({
     req(model_results(), input$time_pwr)
+    
+    tryCatch({
+      if (!"explme" %in% class(model_results())) {
+        stop(
+          "A priori power calculation is only available for exponential growth models ('explme')."
+        )
+      }
+      
+    }, error = function(e) {
+      stop("Error in model class: ", e$message)
+    })
+    
     model_estimates <- round(lmmModel_estimates(model = model_results()), 4)
     
     if (input$max_freq == "max") {
@@ -878,11 +911,11 @@ server <- function(input, output, session) {
         time = time_list,
         type = "max",
         grwrControl = model_estimates[,1],
-        grwrA = model_estimates[,2],
-        grwrB = model_estimates[,3],
+        grwrA = model_estimates[,3],
+        grwrB = model_estimates[,5],
         grwrComb = model_estimates$Combination,
-        sd_ranef = model_estimates$sd_ranef,
-        sgma = model_estimates$sd_resid,
+        sd_ranef = model_estimates$`SD Random Effects`,
+        sgma = model_estimates$`SD Residuals`,
         method = input$time_pwr_method
       )
     } else if (input$max_freq == "freq"){
@@ -909,11 +942,11 @@ server <- function(input, output, session) {
         time = time_list,
         type = "freq",
         grwrControl = model_estimates[,1],
-        grwrA = model_estimates[,2],
-        grwrB = model_estimates[,3],
+        grwrA = model_estimates[,3],
+        grwrB = model_estimates[,5],
         grwrComb = model_estimates$Combination,
-        sd_ranef = model_estimates$sd_ranef,
-        sgma = model_estimates$sd_resid,
+        sd_ranef = model_estimates$`SD Random Effects`,
+        sgma = model_estimates$`SD Residuals`,
         method = input$time_pwr_method
       )
     }
@@ -955,6 +988,18 @@ server <- function(input, output, session) {
   
   VarPwr <- reactive({
     req(model_results(), input$var_pwr)
+    
+    tryCatch({
+      if (!"explme" %in% class(model_results())) {
+        stop(
+          "A priori power calculation is only available for exponential growth models ('explme')."
+        )
+      }
+      
+    }, error = function(e) {
+      stop("Error in model class: ", e$message)
+    })
+    
     model_estimates <- round(lmmModel_estimates(model = model_results()), 4)
     
     grwrControl_pwr_var <- input$grwrControl_pwr_var
@@ -964,12 +1009,12 @@ server <- function(input, output, session) {
     
     grwrA_pwr_var <- input$grwrA_pwr_var
     if(is.na(grwrA_pwr_var)){
-      grwrA_pwr_var <- model_estimates[,2]
+      grwrA_pwr_var <- model_estimates[,3]
     }
     
     grwrB_pwr_var <- input$grwrB_pwr_var
     if(is.na(grwrB_pwr_var)){
-      grwrB_pwr_var <- model_estimates[,3]
+      grwrB_pwr_var <- model_estimates[,5]
     }
     
     grwrComb_pwr_var <- input$grwrComb_pwr_var
@@ -979,32 +1024,32 @@ server <- function(input, output, session) {
     
     sd_ranef <- input$sd_ranef
     if(is.na(sd_ranef)){
-      sd_ranef <- model_estimates$sd_ranef
+      sd_ranef <- model_estimates$`SD Random Effects`
     }
     
     sgma <- input$sgma
     if(is.na(sgma)){
-      sgma <- model_estimates$sd_resid
+      sgma <- model_estimates$`SD Residuals`
     }
     
     sd_eval_min <- input$sd_eval_min
     if(is.na(sd_eval_min)){
-      sd_eval_min <- 0.1*model_estimates$sd_ranef
+      sd_eval_min <- 0.1*model_estimates$`SD Random Effects`
     }
     
     sd_eval_max <- input$sd_eval_max
     if(is.na(sd_eval_max)){
-      sd_eval_max <- 2*model_estimates$sd_ranef
+      sd_eval_max <- 2*model_estimates$`SD Random Effects`
     }
     
     sgma_min <- input$sgma_min
     if(is.na(sgma_min)){
-      sgma_min <- 0.1*model_estimates$sd_resid
+      sgma_min <- 0.1*model_estimates$`SD Residuals`
     }
     
     sgma_max <- input$sgma_max
     if(is.na(sgma_max)){
-      sgma_max <- 2*model_estimates$sd_resid
+      sgma_max <- 2*model_estimates$`SD Residuals`
     }
     
     grwrComb_min <- input$grwrComb_min
