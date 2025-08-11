@@ -575,7 +575,7 @@ ui <- fluidPage(
                     )),
                     tags$figure(
                       tags$img(width = "75%", src = "Flowchart_v2.png", alt = "SynergyLMM workflow overview."),
-                      tags$figcaption(tags$b("Recommended workflow for using SynergyLMM to assess drug combination effects."),
+                      tags$figcaption(tags$br(), tags$b("Recommended workflow for using SynergyLMM to assess drug combination effects."),
                                       "HSA: highest single agent. RA: response additivity.")
                       
                     ))
