@@ -133,5 +133,5 @@ plot_lmmSynergy <- function(syn_data){
   }
   
   CI_SS <- cowplot::plot_grid(CI, SS)
-  return(list(CI = CI, SS = SS, CI_SS = CI_SS))
+  return(CI_SS)
 }

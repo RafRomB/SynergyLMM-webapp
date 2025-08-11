@@ -29,7 +29,7 @@ server <- function(input, output, session) {
   ex_syn <- reactive({
     read.xlsx("www/synergy_results_2025-01-24.xlsx")
   })
-  
+
   # Render example synergy results
   
   output$ex_syn <- renderDT({
@@ -40,21 +40,20 @@ server <- function(input, output, session) {
               'pval' indicates the associated p-value for the drug combination effect and 'Time' indicates the time point associated to the results.")
   })
   
-  # Synergy results in tutorial
   
-  ex_syn <- reactive({
-    read.xlsx("www/synergy_results_2025-01-24.xlsx")
+  # Model estimates from synergy calculation in tutorial
+  
+  ex_syn_est <- reactive({
+    read.xlsx("www/synergy_estimates_results_2025-08-11.xlsx")
   })
   
-  # Render example synergy results
+  # Render example synergy estimates results
   
-  output$ex_syn <- renderDT({
-    req(ex_syn())
-    datatable(ex_syn(), caption = "Synergy results table from the example data. 'Model' column indicates the synergy reference model used.
-              'Metric' refers to the synergy metric used to report the results, either the combination index (CI), or the synergy score (SS).
-              'Estimate', 'lwr', and 'upr' columns indicate the estimated value of the corresponding CI or SS, and the lower and upper limit of the 95% confidence interval, respectively.
-              'pval' indicates the associated p-value for the drug combination effect and 'Time' indicates the time point associated to the results.")
+  output$ex_syn_est <- renderDT({
+    req(ex_syn_est())
+    datatable(ex_syn_est(), caption = "Model estimates from each model at each time point. SD: standard deviation.")
   })
+  
   
   # Outliers for tutorial
   

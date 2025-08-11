@@ -144,7 +144,8 @@ ui <- fluidPage(
                        tags$li(tags$a(href = "#timepwr", "Time and Frequency")),
                        tags$li(tags$a(href = "#variability", "Data Variability"))
                        )
-                     )
+                     ),
+                   tags$li(tags$a(href = "#workflow", "Recommended workflow for using SynergyLMM"))
                    ), 
                  width = 3, 
                  class = "floating-sidebar",
@@ -223,20 +224,31 @@ ui <- fluidPage(
                                              tags$b("d, "),
                                              "Plots of tumor growth data. The arrow heads indicate subjects for which only four observations were made. 
                                              The orange-shaded lines indicate individuals whose measurements are notably different from the others.")),
-                    tags$p(tags$b("Minimum Observations per Subject"), tags$br(),
-                           "In Fig. 1b, there is an option called 'Minimum Observations per Subject', which allows for excluding",
+                    tags$p(tags$b("Minimum Observations per Subject and Growth Model"), 
+                           tags$br(), tags$br(),
+                           "In Fig. 1b, there is an option called", tags$b("'Minimum Observations per Subject'"),", which allows for excluding",
                            "samples with fewer than the specified number of observations. For example, in Figure 1d, the arrow heads indicate",
                            "subjects for which only four observations were made. If the the minimum observations per subject is set to five,",
-                           "these samples will be omitted from the analysis (Fig 2)."),
+                           "these samples will be omitted from the analysis (Fig 2).", 
+                           tags$br(), tags$br(),
+                           "Fig. 1b also shows an option called", tags$b("'Growth Model'"),". This box allows to choose between 'Exponential' or 'Gompertz' growth models. The exponential
+                           model is fitted using a linear mixed effect model, while the Gompertz model is fitted using a non-linear mixed effect model.
+                           The exponential model is generally a good starting point for most in vivo studies, and it tends to converge more easily, it may be 
+                           insufficient when tumor growth dynamics deviate significantly from exponential behavior. In such cases, the Gompertz model typically 
+                           offers better flexibility and more accurate estimates of tumor growth and treatment effects."),
                     tags$figure(
                       tags$img(
-                        width = "75%",
+                        width = "100%",
                         src = "Fig2.png"
                       ),
                       tags$figcaption(tags$b("Figure 2. a, "), 
                                       "Choosing subjects with at least five observations.",
                                       tags$b("b, "), 
-                                      "Plots of tumor growth data from which the individuals with less than five observations have been removed.")
+                                      "Plots of tumor growth data from which the individuals with less than five observations have been removed.",
+                                      tags$b("c, "),
+                                      "Choosing the Gompertz growth model.",
+                                      tags$b("d, "), 
+                                      "Plots of tumor growth data using the Gompertz growth model. Note the difference in the regression lines in the plots shown in", tags$b("a"), ".")
                       )
                     ),
                
@@ -286,7 +298,11 @@ ui <- fluidPage(
                            "result is time 3. At this time point, the CI is lower than 1, and the SS is higher than 0, indicating",
                            "synergy in the drug combination group. However, at the other time points, the results show that the confidence",
                            "interval includes 1 for the CI and 0 for the SS, and the p-value is higher than 0.05, indicating that",
-                           "the additive effect of the drug combination cannot be rejected."),
+                           "the additive effect of the drug combination cannot be rejected.", 
+                           tags$br(), tags$br(),
+                           "In addition to the synergy results, a table output with the model estimates is also returned. In the case of using the exponential model, 
+                           as a model is fitted for each time window being analyzed, the model estimates for each time point are reported:"),
+                    card(h3("Model Estimates by Time"), DTOutput("ex_syn_est"))
                     
                ),
                card(id = "diagnostics",
@@ -325,12 +341,26 @@ ui <- fluidPage(
                            "More details about outlier identification are provided in the",
                            tags$b("Influential Diagnostics"), "section. But first, there are several approaches that the user can follow to try to improve the model diagnostics."),
                     tags$p("If the diagnostic plots and tests show evident violations of the model assumptions, there are several solutions that may help improving the model:",
-                           tags$ul("- Define the model using unequal variances for the errors. This can be done in the",
+                           tags$ul(
+                             tags$b("- Transform the time variable: "),
+                             "Both exponential and Gompertz models are based on ordinary differential equations (ODEs),
+                                   which can be formulated using arbitrary time scales. Applying transformations, such as the square root or logarithm (with +1 offset),
+                                   can often improve model fit, enhance linearity, stabilize variance, and ensure better numerical performance. Importantly, when comparing
+                                   the exact values of a drug combination synergy index, the models should use the same timescale"
+                           ), tags$ul(
+                             tags$b("- Specify a residual variance structure: "),
+                             "SynergyLMM uses the ‘nlme’ R package, which supports flexible variance and correlation structures.
+                                   These allow for heterogeneous variances or within-group correlations, such as those based on subject, time point, treatment, or combinations of these.
+                                   Applying these structures can substantially improve model diagnostics and the robustness of the estimates. This can be done in the ",
+                             
                            tags$i("Advanced Options"), "of the",
                            tags$b("Model Estimation"), "tab."),
-                           tags$ul("- Transform the time units to improve the model fit and ensure that its assumptions are satisfied.
-                                   For example, a square root or logarithmic transformation of the time units could help improving the model."),
-                           tags$ul("- Carefully address potential outliers. Individuals or measurements highlited as potential outliers may warrant 
+                           tags$ul(tags$b("- Prefer the Gompertz model when the exponential model fails: "), 
+                           "While the exponential model is generally a good starting point for most 
+                                   in vivo studies, and it tends to converge more easily, it may be insufficient when tumor growth dynamics deviate significantly from exponential 
+                                   behavior. In such cases, the Gompertz model typically offers better flexibility and more accurate estimates of tumor growth and treatment effects."),
+                           tags$ul(tags$b("- Carefully address potential outlier: "), 
+                           "Individuals or measurements highlited as potential outliers may warrant 
                                    further investigation to reveal the reasons behind unusual growth behaviours, and potentially exclude these before re-analysis, 
                                    after careful reporting and justification.")
                            ),
@@ -342,37 +372,41 @@ ui <- fluidPage(
                         width = "100%",
                         src = "Fig5.png"
                       ),
-                      tags$figcaption(tags$b("Figure 5. a, "), 
+                      tags$figcaption(tags$b("Figure 5. a, "),
+                                      "Using the Advanced Options to specify a treatment-specific residual variance structure",
+                                      tags$b("b, "),
                                       "Q-Q plots of the",
                                       "random effects (top left), normalized residuals (top right), 
                                       scatter plots of normalized residuals versus fitted values (bottom left), and normalized residuals per time and treatment group (bottom right) of the corrected model.", 
-                                      tags$b("b, "), 
+                                      tags$b("c, "), 
                                       "Results of Shapiro-Wilk's normality test for the random effects and normalized residuals.")),
                     card(id = "influential",
                          card_header(h3("Influential Diagnostics")),
-                         tags$p("The", tags$b("Influential Diagnostics"), "tab is useful to identify",
-                                "subjects that have a great impact in the model and that may warrant more careful analysis.",
-                                "To this end, SynergyLMM uses Cook's distances and subject-specific log-likelihood displacements."),
-                         tags$p("Cook's distances indicate the influence of each subject to the beta coefficient estimates",
-                                "of the model (i.e., tumor growth rate for the control and treatment groups). The greater the value, the higher the",
-                                "influence of the subject on the coefficient for its treatment group."),
-                         tags$p("Log-likelihood displacements provide information about the difference in log-likelihood between a model fitted with all",
-                                "the subjects and a model fitted without one specific subject. The greater the value of the log-likelihood displacement for",
-                                "a subject, the greater the influence of that subject on the overall model's likelihood."),
-                         tags$p("Fig. 6 shows results of the influential diagnostics of our example model. It can be seen how our two outlier subjects are identified:
-                                Mouse 10 is identified as having a great influence in the value of its treatment group estimated growth rate, while Mouse 2 is identified
-                                as having an important influence in the overall fit of the model."),
-                         tags$figure(
+                         tags$p(
+                           "The",
+                           tags$b("Influential Diagnostics"),
+                           "tab is useful to identify",
+                           "subjects that have a great impact in the model and that may warrant more careful analysis.",
+                           "To this end, SynergyLMM uses subject-specific Cook's distances."
+                         ), tags$p(
+                           "Cook's distances can be calculated based on the change in fitted values, or based on the change in the fixed effects."
+                         ), tags$p(
+                           "Cook's distances based on the change in fitted values assess the influence of each subject on the model fit.
+                                On the other hand, Cook's distance based on the change in fixed effect values assess the influence of each subject
+                                in the estimated parameters of the treatment groups."
+                         ), tags$p(
+                           "Fig. 6 shows results of the influential diagnostics of our example model. It can be seen how Mouse 10 is identified as having a great influence in the fitted values."
+                         ), tags$figure(
                            tags$img(
                              width = "100%",
                              src = "Fig6.png"
                            ),
                            tags$figcaption(tags$b("Figure 6. a, "),
-                                           "Plot of the Cook's distances values versus subjects.",
-                                           "The highlighted points indicate those individuals whose log-likelihood displacement is higher than the 90th percentile of the values.",
+                                           "Advanced Options for Model Diagnostics. The users can choose between different normality test, the threshold for outlier identification and
+                                           for Cook's distances, and which type of Cook's distance to calculate.",
                                            tags$b("b, "),
-                                           "Plot of the log-likelihood-displacement values versus subjects.", 
-                                           "The highlighted points indicate those individuals whose log-likelihood displacement is higher than the 90th percentile of the values."))
+                                           "Plot of the Cook's distance based on the change in fitted values versus subjects.", 
+                                           "The highlighted points indicate those individuals whose Cook's distance is higher than three time the mean of the values."))
                          ),
                     ),
                card(id = "performance",
@@ -399,6 +433,7 @@ ui <- fluidPage(
                     ),
                
                card(id = "power_analysis", h2("Power Analysis"),
+                    tags$h5(tags$b("Note: Power analyses are only available for models fitted using the exponential growth model.")), 
                     card(id = "posthoc",
                          card_header(h3("Post Hoc Power Analysis")),
                          tags$p("The", tags$b("Post Hoc Power Analysis"), "allows users to check the statistical power of the dataset and fitted model",
@@ -533,7 +568,17 @@ ui <- fluidPage(
                                 "statistical power. However, this method may not accurately reflect real-world scenarios, where changes",
                                 "to one variable can influence others. For instance, increasing or decreasing the sample size or the",
                                 "frequency of measurements can impact the variability in the data."))
-                    )
+                    ),
+               card(id = "workflow",
+                    card_header(h2(
+                      "Recommended workflow for using SynergyLMM"
+                    )),
+                    tags$figure(
+                      tags$img(width = "75%", src = "Flowchart_v2.png", alt = "SynergyLMM workflow overview."),
+                      tags$figcaption(tags$b("Recommended workflow for using SynergyLMM to assess drug combination effects."),
+                                      "HSA: highest single agent. RA: response additivity.")
+                      
+                    ))
                )
              )
     ),
@@ -563,7 +608,8 @@ ui <- fluidPage(
                  uiOutput("drug_c"),
                  uiOutput("combination"),
                  numericInput("min_observations", "Minimum Observations per Subject:", value = 1) %>% helper(type = "markdown", content = "min_obs"),
-                 selectInput("grwth_model", label = "Growth Model", choices = list("Exponential" = "exp", "Gompertz" = "gompertz"), selected = "exp"),
+                 selectInput("grwth_model", label = "Growth Model", choices = list("Exponential" = "exp", "Gompertz" = "gompertz"), selected = "exp") %>%
+                   helper(type = "markdown", content = "grwth_model", size = "l"),
                  checkboxInput("show_plot", "Show Plot", value = TRUE),
                  checkboxInput("model_advanced", "Show Advanced Options", value = FALSE),
                  conditionalPanel(

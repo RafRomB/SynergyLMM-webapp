@@ -5,4 +5,4 @@ For highly complex models — such as those incorporating within-group unequal v
 To solve the convergence problems, you can try increasing the number of iterations until reaching convergence.
 Another option is to use a different optimizer, either `nlminb` or `optim`.
 
-More information can be found in [lmeControl](https://www.rdocumentation.org/packages/nlme/versions/3.1-166/topics/lmeControl) help page from [nlme](https://cran.r-project.org/web/packages/nlme/index.html) package.
+More information can be found in [lmeControl](https://www.rdocumentation.org/packages/nlme/versions/3.1-166/topics/lmeControl) and [nlmeControl](https://www.rdocumentation.org/packages/nlme/versions/3.1-83/topics/nlmeControl) help pages from [nlme](https://cran.r-project.org/web/packages/nlme/index.html) package.
