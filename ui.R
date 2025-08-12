@@ -13,7 +13,7 @@ ui <- fluidPage(
     /* Style for the title panel */
     .title-panel {
       background-color: #a7c9c7; /* Background color */
-      color: #171d1f; /* Text color */
+      color: #ffffff; /* Text color */
       padding: 10px; /* Add some padding */
       border-radius: 10px; /* Optional: Rounded corners */
       font-size: 50px;
@@ -52,17 +52,27 @@ ui <- fluidPage(
       padding: 15px;
       border-radius: 8px;
     }
+    
+    /* --- stick the sidebar on large screens --- */
+    .floating-sidebar {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 80px;
+      align-self: flex-start;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
 
     .main-panel-adjust {
       margin-top: 20px;
     }
 
-    /* Responsive layout adjustments */
+    /* reset on small screens */
     @media (max-width: 1200px) {
       .floating-sidebar {
         position: static;
-        width: 100%;
-        margin-bottom: 20px;
+        max-height: none;
+        overflow: visible;
       }
 
       .main-panel-adjust {
@@ -116,7 +126,13 @@ ui <- fluidPage(
     }
 ")),
   
-  tags$div(class = "title-panel", titlePanel("SynergyLMM (v1)")),
+  tags$div(class = "title-panel",
+           tags$img(
+             src = "SynergyLMM_icon.png",   # Put your icon file in the www folder
+             height = "75px",    # Adjust size
+             style = "vertical-align: middle; margin-right: 15px;"
+           ),
+           tags$span(strong("SynergyLMM 1.1.0"))),
   
   #Tab layout
   tabsetPanel(
