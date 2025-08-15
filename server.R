@@ -440,6 +440,7 @@ server <- function(input, output, session) {
   # Render the synergy plot
   output$synergy_plot <- renderPlot({
     req(synergyPlot())
+    print(synergyPlot()$CI_SS)
   })
   
   # Download synergy plot

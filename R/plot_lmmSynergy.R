@@ -70,10 +70,10 @@ plot_lmmSynergy <- function(syn_data){
   
   Model <- unique(syn_data$Model)
   
-  CI <- syn_data %>% dplyr::filter(.data$Metric == "Combination Index") %>% ggplot(aes(x = .data$Time, y = .data$Estimate)) +
-    geom_segment(aes(x= .data$Time, y = .data$lwr, yend = .data$upr), color = "gray60", lwd = 1, 
+  CI <- syn_data %>% dplyr::filter(Metric == "Combination Index") %>% ggplot(aes(x = Time, y = Estimate)) +
+    geom_segment(aes(x= Time, xend = Time, y = lwr, yend = upr), color = "gray60", lwd = 1, 
                  arrow = arrow(angle = 90, length = unit(0.01, "npc"),ends = "both")) + cowplot::theme_cowplot() +
-    geom_point(aes(fill  = .data$padj), size = 5, shape = 23, color = "gray60") +
+    geom_point(aes(fill  = padj), size = 5, shape = 23, color = "gray60") +
     #scale_fill_gradient2(name = "Adjusted\np-value", high = "darkorchid4",mid = "gray90", low = "darkcyan",midpoint = 0.05, na.value = "white") +
     scale_fill_gradient(name = legend_name, high = "darkorchid4", low = "#d0f5ec", na.value = "white") +
     ylab("Combination Index") + xlab("Time since start of treatment") + 
@@ -87,24 +87,24 @@ plot_lmmSynergy <- function(syn_data){
   
   if (sum(is.na(syn_data$padj)) > 1 & sum(is.na(syn_data$padj)) != length(syn_data$padj)) {
     CI <- CI +
-      geom_point(aes(x = .data$Time, y = .data$Estimate, color = .data$padj0), size = 5, shape = 23) + 
+      geom_point(aes(x = Time, y = Estimate, color = padj0), size = 5, shape = 23) + 
       guides(colours = guide_legend(override.aes = list(size = 5))) +
       scale_color_manual(name = NULL, 
                          values = c(`padj0` = "extreme"), labels = apx_p) +
       coord_cartesian(clip = "off")
   } else if (sum(is.na(syn_data$padj)) == length(syn_data$padj)) {
     CI <- CI +
-      geom_point(aes(x = .data$Time, y = .data$Estimate, color = .data$padj0), size = 5, shape = 23) + 
+      geom_point(aes(x = Time, y = Estimate, color = padj0), size = 5, shape = 23) + 
       guides(colours = guide_legend(override.aes = list(size = 5))) +
       scale_color_manual(name = NULL, 
                          values = "gray60", labels = apx_p) +
       coord_cartesian(clip = "off")
   }
   
-  SS <- syn_data %>% dplyr::filter(.data$Metric == "Synergy Score") %>% ggplot(aes(x = .data$Time, y = .data$Estimate)) +
-    geom_segment(aes(x= .data$Time, y = .data$lwr, yend = .data$upr), color = "gray60", lwd = 1,
+  SS <- syn_data %>% dplyr::filter(Metric == "Synergy Score") %>% ggplot(aes(x = Time, y = Estimate)) +
+    geom_segment(aes(x= Time, xend = Time, y = lwr, yend = upr), color = "gray60", lwd = 1,
                  arrow = arrow(angle = 90, length = unit(0.01, "npc"),ends = "both")) + cowplot::theme_cowplot() +
-    geom_point(aes(fill  = .data$padj), size = 5, shape = 23, color = "gray60") +
+    geom_point(aes(fill  = padj), size = 5, shape = 23, color = "gray60") +
     #scale_fill_gradient2(name = "Adjusted\np-value", high = "darkorchid4",mid = "gray90", low = "darkcyan",midpoint = 0.05, na.value = "white") +
     scale_fill_gradient(name = legend_name, high = "darkorchid4", low = "#d0f5ec", na.value = "white") +
     ylab("Synergy Score") + xlab("Time since start of treatment") +
@@ -118,14 +118,14 @@ plot_lmmSynergy <- function(syn_data){
   
   if (sum(is.na(syn_data$padj)) > 1 & sum(is.na(syn_data$padj)) != length(syn_data$padj)) {
     SS <- SS +
-      geom_point(aes(x = .data$Time, y = .data$Estimate, color = .data$padj0), size = 5, shape = 23) + 
+      geom_point(aes(x = Time, y = Estimate, color = padj0), size = 5, shape = 23) + 
       guides(colours = guide_legend(override.aes = list(size = 5))) +
       scale_color_manual(name = NULL, 
                          values = c(`padj0` = "extreme"), labels = apx_p) +
       coord_cartesian(clip = "off")
   } else if (sum(is.na(syn_data$padj)) == length(syn_data$padj)) {
     SS <- SS +
-      geom_point(aes(x = .data$Time, y = .data$Estimate, color = .data$padj0), size = 5, shape = 23) + 
+      geom_point(aes(x = Time, y = Estimate, color = padj0), size = 5, shape = 23) + 
       guides(colours = guide_legend(override.aes = list(size = 5))) +
       scale_color_manual(name = NULL, 
                          values = "gray60", labels = apx_p) +
@@ -133,5 +133,5 @@ plot_lmmSynergy <- function(syn_data){
   }
   
   CI_SS <- cowplot::plot_grid(CI, SS)
-  return(CI_SS)
+  return(list(CI = CI, SS = SS, CI_SS = CI_SS))
 }
